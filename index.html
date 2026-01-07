@@ -171,96 +171,97 @@ button:active{
 const PROXY_URL = "https://script.google.com/macros/s/AKfycbxYisy3JMe8h9NcKgYv5y4F5dBWiYorlNSNIGlMasUlbJh0pIHGp7ekS1jB2LavHWYK/exec";
 
 /* ---------- Helpers ---------- */
-function nowLA(){
-  return new Date(new Date().toLocaleString("en-US",{timeZone:"America/Los_Angeles"}));
+function nowLA() {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
 }
 
-function dateOnly(d){return d.toISOString().split("T")[0]}
+function dateOnly(d) {
+  return d.toISOString().split("T")[0];
+}
 
 /* ---------- Load Data ---------- */
-async function loadData(){
+async function loadData() {
   const r = await fetch(PROXY_URL);
   return await r.json();
 }
 
 /* ---------- Compute Display ---------- */
-function compute(data){
+function compute(data) {
   const now = nowLA();
-  const todayStr = dateOnly(now);
   const day = now.getDay();
 
   /* --- TODAY --- */
-  const routine = data.Daily_Routines.find(r=>{
-    if(day>=1 && day<=4) return r.Type==="Weekday";
-    return r.Type==="Weekend";
+  const routine = data.Daily_Routines.find(r => {
+    if (day >= 1 && day <= 4) return r["Type"] === "Weekday";
+    return r["Type"] === "Weekend";
   });
-  const todayText = routine ? routine.RoutineName : "No routine defined";
+  const todayText = routine ? routine["RoutineName"] : "No routine defined";
 
   /* --- THIS SPRINT --- */
-  // Identify current sprint from Sprints tab
-  const currentSprint = data.Sprints.find(s=>{
-    const start = new Date(s.Start Date);
-    const end = new Date(s.End Date);
+  const currentSprint = data.Sprints.find(s => {
+    const start = new Date(s["Start Date"]);
+    const end = new Date(s["End Date"]);
     return now >= start && now <= end;
   });
 
-  let thisSprintGoals = data.Goals.filter(g=>g.Sprint===currentSprint?.SprintName);
-  // Build goal cards
-  const thisSprintCards = thisSprintGoals.map(g=>{
-    let card = `<div class="goal-card"><h3>${g.Goal Name}</h3>`;
-    // Tasks for this goal
-    const tasks = data.Tasks.filter(t=>t.Goal===g.Goal Name && t.Status!=="Done");
-    if(tasks.length){
-      card += "<ul>"+tasks.map(t=>`<li>${t.Task Name}</li>`).join("")+"</ul>";
+  let thisSprintGoals = data.Goals.filter(g => g["Sprint"] === currentSprint?.["SprintName"]);
+
+  const thisSprintCards = thisSprintGoals.map(g => {
+    let card = `<div class="goal-card"><h3>${g["Goal Name"]}</h3>`;
+
+    const tasks = data.Tasks.filter(t => t["Goal"] === g["Goal Name"] && t["Status"] !== "Done");
+    if (tasks.length) {
+      card += "<ul>" + tasks.map(t => `<li>${t["Task Name"]}</li>`).join("") + "</ul>";
     }
-    // Events with prep start in this sprint
-    const events = data.Events.filter(e=>{
-      const prep = new Date(e.Prep Start Date);
-      return prep >= new Date(currentSprint.Start Date) && prep <= new Date(currentSprint.End Date);
+
+    const events = data.Events.filter(e => {
+      const prep = new Date(e["Prep Start Date"]);
+      return prep >= new Date(currentSprint["Start Date"]) && prep <= new Date(currentSprint["End Date"]);
     });
-    if(events.length){
-      card += "<ul>"+events.map(e=>`<li>Prep: ${e.Event Name} (${e.Prep Start Date})</li>`).join("")+"</ul>";
+    if (events.length) {
+      card += "<ul>" + events.map(e => `<li>Prep: ${e["Event Name"]} (${e["Prep Start Date"]})</li>`).join("") + "</ul>";
     }
+
     card += "</div>";
     return card;
   });
 
   /* --- NEXT SPRINT --- */
-  const nextSprint = data.Sprints.find(s=>new Date(s.Start Date) > now);
-  const nextSprintGoals = data.Goals.filter(g=>g.Sprint===nextSprint?.SprintName)
-    .map(g=>`<div class="goal-card"><h3>${g.Goal Name}</h3></div>`);
+  const nextSprint = data.Sprints.find(s => new Date(s["Start Date"]) > now);
+  const nextSprintGoals = data.Goals.filter(g => g["Sprint"] === nextSprint?.["SprintName"])
+    .map(g => `<div class="goal-card"><h3>${g["Goal Name"]}</h3></div>`);
 
   /* --- THIS MONTH --- */
   const monthEnd = new Date(now);
-  monthEnd.setDate(now.getDate()+31);
+  monthEnd.setDate(now.getDate() + 31);
 
-  const monthGoals = data.Goals.filter(g=>{
-    const goalDate = new Date(g.Month);
+  const monthGoals = data.Goals.filter(g => {
+    const goalDate = new Date(g["Month"]);
     return goalDate >= now && goalDate <= monthEnd;
-  }).map(g=>`<div class="goal-card"><h3>${g.Goal Name}</h3></div>`);
+  }).map(g => `<div class="goal-card"><h3>${g["Goal Name"]}</h3></div>`);
 
-  const monthEvents = data.Events.filter(e=>{
-    const d = new Date(e.Event Date);
+  const monthEvents = data.Events.filter(e => {
+    const d = new Date(e["Event Date"]);
     return d >= now && d <= monthEnd;
-  }).map(e=>`<div class="goal-card"><h3>📅 ${e.Event Name}</h3></div>`);
+  }).map(e => `<div class="goal-card"><h3>📅 ${e["Event Name"]}</h3></div>`);
 
   return {
     today: todayText,
     thisSprint: thisSprintCards.join(""),
     nextSprint: nextSprintGoals.join(""),
-    thisMonth: [...monthGoals,...monthEvents].join("")
+    thisMonth: [...monthGoals, ...monthEvents].join("")
   };
 }
 
 /* ---------- UI ---------- */
-document.getElementById("spin").onclick=async()=>{
+document.getElementById("spin").onclick = async () => {
   const data = await loadData();
   const r = compute(data);
 
-  today.textContent = r.today;
-  thisSprint.innerHTML = r.thisSprint;
-  nextSprint.innerHTML = r.nextSprint;
-  thisMonth.innerHTML = r.thisMonth;
+  document.getElementById("today").textContent = r.today;
+  document.getElementById("thisSprint").innerHTML = r.thisSprint;
+  document.getElementById("nextSprint").innerHTML = r.nextSprint;
+  document.getElementById("thisMonth").innerHTML = r.thisMonth;
 };
 </script>
 </body>
