@@ -199,36 +199,36 @@ function compute(data){
   /* --- THIS SPRINT --- */
   // Identify current sprint from Sprints tab
   const currentSprint = data.Sprints.find(s=>{
-    const start = new Date(s.StartDate);
-    const end = new Date(s.EndDate);
+    const start = new Date(s.Start Date);
+    const end = new Date(s.End Date);
     return now >= start && now <= end;
   });
 
   let thisSprintGoals = data.Goals.filter(g=>g.Sprint===currentSprint?.SprintName);
   // Build goal cards
   const thisSprintCards = thisSprintGoals.map(g=>{
-    let card = `<div class="goal-card"><h3>${g.GoalName}</h3>`;
+    let card = `<div class="goal-card"><h3>${g.Goal Name}</h3>`;
     // Tasks for this goal
-    const tasks = data.Tasks.filter(t=>t.Goal===g.GoalName && t.Status!=="Done");
+    const tasks = data.Tasks.filter(t=>t.Goal===g.Goal Name && t.Status!=="Done");
     if(tasks.length){
-      card += "<ul>"+tasks.map(t=>`<li>${t.TaskName}</li>`).join("")+"</ul>";
+      card += "<ul>"+tasks.map(t=>`<li>${t.Task Name}</li>`).join("")+"</ul>";
     }
     // Events with prep start in this sprint
     const events = data.Events.filter(e=>{
-      const prep = new Date(e.PrepStartDate);
-      return prep >= new Date(currentSprint.StartDate) && prep <= new Date(currentSprint.EndDate);
+      const prep = new Date(e.Prep Start Date);
+      return prep >= new Date(currentSprint.Start Date) && prep <= new Date(currentSprint.End Date);
     });
     if(events.length){
-      card += "<ul>"+events.map(e=>`<li>Prep: ${e.EventName} (${e.PrepStartDate})</li>`).join("")+"</ul>";
+      card += "<ul>"+events.map(e=>`<li>Prep: ${e.Event Name} (${e.Prep Start Date})</li>`).join("")+"</ul>";
     }
     card += "</div>";
     return card;
   });
 
   /* --- NEXT SPRINT --- */
-  const nextSprint = data.Sprints.find(s=>new Date(s.StartDate) > now);
+  const nextSprint = data.Sprints.find(s=>new Date(s.Start Date) > now);
   const nextSprintGoals = data.Goals.filter(g=>g.Sprint===nextSprint?.SprintName)
-    .map(g=>`<div class="goal-card"><h3>${g.GoalName}</h3></div>`);
+    .map(g=>`<div class="goal-card"><h3>${g.Goal Name}</h3></div>`);
 
   /* --- THIS MONTH --- */
   const monthEnd = new Date(now);
@@ -237,12 +237,12 @@ function compute(data){
   const monthGoals = data.Goals.filter(g=>{
     const goalDate = new Date(g.Month);
     return goalDate >= now && goalDate <= monthEnd;
-  }).map(g=>`<div class="goal-card"><h3>${g.GoalName}</h3></div>`);
+  }).map(g=>`<div class="goal-card"><h3>${g.Goal Name}</h3></div>`);
 
   const monthEvents = data.Events.filter(e=>{
-    const d = new Date(e.EventDate);
+    const d = new Date(e.Event Date);
     return d >= now && d <= monthEnd;
-  }).map(e=>`<div class="goal-card"><h3>📅 ${e.EventName}</h3></div>`);
+  }).map(e=>`<div class="goal-card"><h3>📅 ${e.Event Name}</h3></div>`);
 
   return {
     today: todayText,
