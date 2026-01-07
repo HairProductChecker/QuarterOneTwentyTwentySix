@@ -1,2 +1,0 @@
-# QuarterOneTwentyTwentySix
-Q1

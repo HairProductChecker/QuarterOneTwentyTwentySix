@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Goal Spinner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#2f3236;color:#fff;}
+.container{max-width:640px;margin:auto;padding:20px;text-align:center;}
+h1{font-size:26px;margin-bottom:24px;}
+button{width:100%;background:#ff9500;color:#000;border:none;padding:16px;font-size:18px;border-radius:10px;cursor:pointer;margin-bottom:24px;}
+.slots{display:grid;gap:14px;}
+.slot{background:#3f4247;border-radius:10px;padding:14px;text-align:left;min-height:72px;}
+.slot-title{font-size:18px;font-weight:600;margin-bottom:8px;}
+.slot-content{white-space:pre-line;line-height:1.4;font-size:15px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Goal Spinner</h1>
+<button id="spinButton">Spin for Focus</button>
+
+<div class="slots">
+  <div class="slot"><div class="slot-title">Today</div><div id="today" class="slot-content"></div></div>
+  <div class="slot"><div class="slot-title">This Week</div><div id="week" class="slot-content"></div></div>
+  <div class="slot"><div class="slot-title">This Sprint</div><div id="sprint" class="slot-content"></div></div>
+  <div class="slot"><div class="slot-title">This Month</div><div id="month" class="slot-content"></div></div>
+</div>
+</div>
+
+<script>
+const PROXY_URL = "https://script.google.com/macros/s/AKfycbyDQH4t5itUdpe17FBcu7MdOYvreQA9ZHxy8-OGUcOvEKp2fx1A9vUpwVf-p_EqxMCX/exec";
+
+async function loadData() {
+  const res = await fetch(PROXY_URL);
+  return await res.json();
+}
+
+function computeSlots(data) {
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+
+  const meta = {};
+  data.Meta.forEach(r => meta[r.Key] = r.Value);
+
+  const sprintLen = parseInt(meta["Sprint Length (days)"] || 14);
+  const sprintStart = new Date(meta["Sprint Start Date"]);
+  const sprintEnd = new Date(sprintStart);
+  sprintEnd.setDate(sprintStart.getDate() + sprintLen);
+
+  const monthEnd = new Date(now);
+  monthEnd.setDate(now.getDate() + parseInt(meta["Month Lookahead (days)"] || 31));
+
+  const today = [];
+  data.Daily_Routines.filter(r => String(r.Active).toLowerCase() === "true")
+    .forEach(r => today.push(r.RoutineName));
+  data.Tasks.filter(t => t.DueDate === todayStr && t.Status !== "Done")
+    .forEach(t => today.push(t.TaskName));
+  data.Events.filter(e => e.EventDate === todayStr)
+    .forEach(e => today.push("Event: " + e.EventName));
+
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const week = data.Tasks.filter(t => {
+    const d = new Date(t.DueDate);
+    return d >= weekStart && d <= weekEnd && t.Status !== "Done";
+  }).map(t => t.TaskName);
+
+  const sprint = data.Tasks.filter(t => {
+    const d = new Date(t.DueDate);
+    return d >= sprintStart && d <= sprintEnd && t.Status !== "Done";
+  }).map(t => t.TaskName);
+
+  const month = data.Events.filter(e => {
+    const d = new Date(e.EventDate);
+    return d >= now && d <= monthEnd;
+  }).map(e => `${e.EventName} (${e.EventDate})`);
+
+  return {
+    today: today.length ? today.join("\n") : "Nothing urgent today",
+    week: week.length ? week.join("\n") : "On track this week",
+    sprint: sprint.length ? sprint.join("\n") : "Sprint is clear",
+    month: month.length ? month.join("\n") : "No upcoming events"
+  };
+}
+
+document.getElementById("spinButton").onclick = async () => {
+  const data = await loadData();
+  const slots = computeSlots(data);
+  today.textContent = slots.today;
+  week.textContent = slots.week;
+  sprint.textContent = slots.sprint;
+  month.textContent = slots.month;
+};
+</script>
+
+</body>
+</html>
